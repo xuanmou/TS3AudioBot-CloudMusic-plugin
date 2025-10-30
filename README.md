@@ -106,8 +106,8 @@ Cookie登录:
   "Version": 1, // 配置版本 请勿修改
   "PlayMode": "RandomPlay", // 播放模式
   "AutoPause": true, // 无人自动暂停
-  "SleepTimer": 5, // 自动回到默认频道的时间 (秒)
-  "defaultChannelID": 1, // 默认频道ID，在插件启动时候日志会输出所有频道信息
+  "AutoMoveDelay": 5, // 自动回到默认频道的时间 (秒)
+  "DefaultChannelID": 1, // 默认频道ID，在插件启动时候日志会输出所有频道信息
   "DefaultApi": "Netease", // 默认API
   "Apis": [ // API 配置
     {
