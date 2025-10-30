@@ -49,6 +49,7 @@ namespace YunPlugin
 
         private static ulong ownChannelID;
         private static List<ulong> ownChannelClients = new List<ulong>();
+        private static CancellationTokenSource sleepCts;
 
         private Dictionary<MusicApiType, IMusicApiInterface> musicApiInterfaces;
 
@@ -60,7 +61,7 @@ namespace YunPlugin
             this.serverView = serverView;
         }
 
-        public void Initialize()
+        public async void Initialize()
         {
             musicApiInterfaces = new Dictionary<MusicApiType, IMusicApiInterface>();
             playControl = new PlayControl(playManager, ts3Client, Log);
@@ -78,7 +79,19 @@ namespace YunPlugin
 
             _ = updateOwnChannel();
 
-            ts3Client.SendChannelMessage($"云音乐插件加载成功！Ver: {PluginVersion}");
+            await ts3Client.SendChannelMessage($"云音乐插件加载成功！Ver: {PluginVersion}");
+
+
+            R<ChannelListResponse[], CommandError> channelList = await TS3FullClient.ChannelList();
+            if (!channelList)
+            {
+                Log.Warn($"ChannelList failed ({channelList.Error.ErrorFormat()})");
+                return;
+            }
+            foreach (var channel in channelList.Value.ToList())
+            {
+                Log.Info($"ownChannelID: {channel.ChannelId.Value}\tisDefault: {channel.IsDefault == true}\townChannelName: {channel.Name}");
+            }
         }
 
         private IMusicApiInterface GetApiInterface(MusicApiType type = MusicApiType.None)
@@ -185,6 +198,9 @@ namespace YunPlugin
             if (channelID < 1) channelID = (await TS3FullClient.WhoAmI()).Value.ChannelId.Value;
             ownChannelID = channelID;
             ownChannelClients.Clear();
+            sleepCts?.Cancel();
+            sleepCts = null;
+
             R<ClientList[], CommandError> r = await TS3FullClient.ClientList();
             if (!r)
             {
@@ -201,20 +217,54 @@ namespace YunPlugin
             }
         }
 
-        private void checkOwnChannel()
+        private async void checkOwnChannel()
         {
             if (!config.AutoPause)
             {
                 return;
             }
+
             if (ownChannelClients.Count < 1)
             {
                 PlayerConnection.Paused = true;
+
+                sleepCts?.Cancel();
+                sleepCts = new CancellationTokenSource();
+                var token = sleepCts.Token;
+
+                if (config.AutoMoveDelay != -1 && config.DefaultChannelID != 0 && ownChannelID != config.DefaultChannelID)
+                {
+                    try
+                    {
+                        int elapsed = 0;
+                        int interval = 100;
+                        int total = config.AutoMoveDelay * 1000;
+
+                        while (elapsed < total)
+                        {
+                            if (token.IsCancellationRequested || ownChannelClients.Count > 0)
+                                return;
+
+                            await Task.Delay(interval);
+                            elapsed += interval;
+                        }
+
+                        Log.Info("Sleep timer elapsed, moving to default channel");
+                        await ts3Client.MoveTo(new ChannelId(config.DefaultChannelID));
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.Info("Sleep timer cancelled");
+                    }
+                }
             }
             else
             {
                 PlayerConnection.Paused = false;
+                sleepCts?.Cancel();
+                sleepCts = null;
             }
+
             Log.Debug("ownChannelClients: {}", ownChannelClients.Count);
         }
 

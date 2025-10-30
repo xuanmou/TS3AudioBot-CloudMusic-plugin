@@ -43,6 +43,8 @@ namespace YunPlugin
         [JsonConverter(typeof(StringEnumConverter))]
         public Mode PlayMode { get; set; }
         public bool AutoPause { get; set; }
+        public int AutoMoveDelay { get; set; }
+        public ulong DefaultChannelID { get; set; }
         [JsonConverter(typeof(StringEnumConverter))]
         public MusicApiType DefaultApi { get; set; }
         public List<ApiContainer> Apis { get; set; }
@@ -50,7 +52,7 @@ namespace YunPlugin
         [JsonIgnore]
         private string Path { get; set; }
         [JsonIgnore]
-        public int CurrentVersion = 1;
+        public int CurrentVersion = 2;
 
         [JsonIgnore]
         private static JsonSerializerSettings Settings = new JsonSerializerSettings
@@ -108,6 +110,8 @@ namespace YunPlugin
                 if (config.Version < config.CurrentVersion)
                 {
                     config.Version = config.CurrentVersion;
+                    config.AutoMoveDelay = 5;
+                    config.DefaultChannelID = 1;
                     config.Save();
                 }
                 return config;
@@ -120,6 +124,8 @@ namespace YunPlugin
                     PlayMode = Mode.SeqPlay,
                     DefaultApi = MusicApiType.Netease,
                     AutoPause = true,
+                    AutoMoveDelay = 5,
+                    DefaultChannelID = 1,
                     Path = path,
                     Apis = new List<ApiContainer>()
                 };
