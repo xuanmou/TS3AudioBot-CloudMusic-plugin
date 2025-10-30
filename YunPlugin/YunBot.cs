@@ -624,7 +624,7 @@ namespace YunPlugin
                 sp = newSP;
             }
 
-            if (sp.Length >= 2 && (sp.Last() == "max" || (Utils.IsNumber(sp.Last()) && sp.Length <= 4)))
+            if (sp.Length >= 2 && (sp.Last() == "max" || (Utils.IsNumber(sp.Last()) && sp.Last().Length <= 4 && sp.Length <= 4)))
             {
                 if (sp.Last() == "max")
                 {
