@@ -80,7 +80,7 @@ namespace YunPlugin
                 return null;
             }
 
-            if (Enum.TryParse<MusicApiType>(alias, out var type))
+            if (Enum.TryParse<MusicApiType>(alias,true, out var type))
             {
                 return GetApiConfig(type);
             }
